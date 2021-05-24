@@ -1,6 +1,6 @@
 <template>
   <div class="view-box">
-    <div class="view-title">获取文章列表（要获得编辑权限请先 <router-link to="/login">登录</router-link> ）</div>
+    <div class="view-title">获取文章列表<span v-if="!isLogin">（要获得编辑权限请先 <router-link to="/login">登录</router-link> ）</span></div>
     <div class="view-tools">
       <el-button @click="getArticles">获取文章</el-button>
       <el-button @click="addArticle">添加文章</el-button>
@@ -46,6 +46,11 @@ export default {
         total: 0
       },
       getLoading: false
+    }
+  },
+  computed: {
+    isLogin () {
+      return this.$store.getters.isLogin
     }
   },
   methods: {

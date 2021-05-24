@@ -2,7 +2,19 @@
   <div id="app">
     <el-container class="page">
       <el-header class="header-box">
-        <div class="header-wrapper">eMock的使用示例</div>
+        <div class="header-wrapper">
+          <div class="header-wrapper-left">eMock的使用示例</div>
+          <div class="header-wrapper-right">
+            <el-dropdown v-if="isLogin" @command="handleCommand">
+              <span class="el-dropdown-link">
+                {{ user.name }}<i class="el-icon-arrow-down el-icon--right"></i>
+              </span>
+              <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item command="logout">退出</el-dropdown-item>
+              </el-dropdown-menu>
+            </el-dropdown>
+          </div>
+        </div>
       </el-header>
       <el-container>
         <el-aside width="200px" class="page-aside">
@@ -26,6 +38,38 @@ export default {
   name: 'app',
   components: {
     AsideMenu
+  },
+  data () {
+    return {
+      logoutLoading: false
+    }
+  },
+  computed: {
+    isLogin () {
+      return this.$store.getters.isLogin
+    },
+    user () {
+      return this.$store.state.user
+    }
+  },
+  methods: {
+    handleCommand (command) {
+      this[command]()
+    },
+
+    logout () {
+      if (this.logoutLoading) return false
+      this.logoutLoading = true
+      this.$axios.post('/api/logout').then(res => {
+        this.$store.commit('setUser', {})
+        this.$cookie.remove('mockCookie')
+        this.$router.push('/login')
+      }).catch(err => {
+        console.log(err)
+      }).finally(_ => {
+        this.logoutLoading = false
+      })
+    }
   }
 }
 </script>
@@ -38,10 +82,21 @@ export default {
     padding: 0;
     background-color: #545c64;
     .header-wrapper {
+      display: flex;
+      align-items: center;
       padding: 0 15px;
       font-size: 18px;
       color: #fff;
-      line-height: 60px;
+      .header-wrapper-left {
+        flex: 1;
+        line-height: 60px;
+      }
+      .header-wrapper-right {
+        color: #fff;
+        .el-dropdown {
+          color: #fff;
+        }
+      }
     }
   }
 
