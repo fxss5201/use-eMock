@@ -61,7 +61,9 @@ export default {
           password: this.ruleForm.password
         }
       }).then(res => {
-        console.log(res)
+        this.$store.commit('setUser', res.user)
+        this.$cookie.set('mockCookie', res.user.cookie, { expires: 7 })
+        this.$router.push('/article')
       }).catch(err => {
         console.log(err)
       }).finally(_ => {

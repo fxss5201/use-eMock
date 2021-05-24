@@ -21,22 +21,33 @@
 export default {
   name: 'AsideMenu',
   data () {
-    return {
-      menuList: [
-        {
-          index: '/login',
-          name: '登录'
-        },
+    return {}
+  },
+  computed: {
+    defaultActive () {
+      return this.$route.path
+    },
+    isLogin () {
+      return this.$store.getters.isLogin
+    },
+    menuList () {
+      const normalList = [
         {
           index: '/article',
           name: '文章列表'
         }
       ]
-    }
-  },
-  computed: {
-    defaultActive () {
-      return this.$route.path
+      const authorList = [
+        {
+          index: '/login',
+          name: '登录'
+        }
+      ]
+      if (this.isLogin) {
+        return normalList
+      } else {
+        return authorList.concat(normalList)
+      }
     }
   }
 }
