@@ -41,6 +41,7 @@ export default {
   },
   data () {
     return {
+      loginLoading: false,
       logoutLoading: false
     }
   },
@@ -52,7 +53,28 @@ export default {
       return this.$store.state.user
     }
   },
+  created () {
+    if (this.$cookie.get('mockCookie')) {
+      this.loginByCookie()
+    }
+  },
   methods: {
+    loginByCookie () {
+      if (this.loginLoading) return false
+      this.loginLoading = true
+      this.$axios.post('/api/loginByCookie').then(res => {
+        this.$store.commit('setUser', res.user)
+        this.$cookie.set('mockCookie', res.user.cookie, { expires: 7 })
+        if (this.$route.path === '/login') {
+          this.$router.push('/article')
+        }
+      }).catch(err => {
+        console.log(err)
+      }).finally(_ => {
+        this.loginLoading = false
+      })
+    },
+
     handleCommand (command) {
       this[command]()
     },

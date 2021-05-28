@@ -2,10 +2,10 @@
   <div class="view-box">
     <div class="view-title">获取文章列表<span v-if="!isLogin">（要获得编辑权限请先 <router-link to="/login">登录</router-link> ）</span></div>
     <div class="view-tools">
-      <el-button @click="getArticles">获取文章</el-button>
-      <el-button @click="addArticle">添加文章</el-button>
+      <el-button @click="refreshGetArticles">刷新文章列表</el-button>
+      <el-button @click="addArticle" v-if="isLogin">添加文章</el-button>
     </div>
-    <div v-loading="getLoading">
+    <div v-loading="articleListLoading">
       <div class="view-list">
         <div
           v-for="item in list"
@@ -16,7 +16,10 @@
           <div class="item-tools">
             <div class="item-time">{{ item.time }}</div>
             <div class="item-author">{{ item.author }}</div>
-            <div class="item-btn-box">
+            <div class="item-btn-box" v-if="isLogin">
+              <el-button size="mini" icon="el-icon-view" title="详情" @click="itemBtnEvent('detail', item)"></el-button>
+              <el-button size="mini" icon="el-icon-edit" title="编辑" @click="itemBtnEvent('editor', item)"></el-button>
+              <el-button size="mini" icon="el-icon-delete" title="删除" @click="itemBtnEvent('delete', item)"></el-button>
             </div>
           </div>
         </div>
@@ -26,26 +29,44 @@
         layout="total, sizes, prev, pager, next, jumper"
         :current-page="page.currentPage"
         :page-size="page.pageSize"
+        :page-sizes="[5, 10, 20, 30, 40, 50, 100]"
         :total="page.total"
         @current-change="currentChange"
         @size-change="sizeChange">
       </el-pagination>
     </div>
+
+    <!-- 添加或者编辑文章 -->
+    <add-or-editor
+      :type="dialogArticleType"
+      :show="dialogArticleShow"
+      :curArticle="curArticle"
+      @toggle="dialogArticleToggle"
+      @refresh="getArticles"
+    ></add-or-editor>
   </div>
 </template>
 
 <script>
+import AddOrEditor from './../components/AddOrEditor'
+
 export default {
   name: 'Article',
+  components: {
+    AddOrEditor
+  },
   data () {
     return {
       list: [],
       page: {
         currentPage: 1,
-        pageSize: 10,
+        pageSize: 5,
         total: 0
       },
-      getLoading: false
+      articleListLoading: false,
+      dialogArticleType: 'add',
+      dialogArticleShow: false,
+      curArticle: {}
     }
   },
   computed: {
@@ -53,10 +74,13 @@ export default {
       return this.$store.getters.isLogin
     }
   },
+  created () {
+    this.getArticles()
+  },
   methods: {
     getArticles () {
-      if (this.getLoading) return false
-      this.getLoading = true
+      if (this.articleListLoading) return false
+      this.articleListLoading = true
       this.$axios.get('/api/articles', {
         params: {
           currentPage: this.page.currentPage,
@@ -68,8 +92,13 @@ export default {
       }).catch(err => {
         console.log(err)
       }).finally(_ => {
-        this.getLoading = false
+        this.articleListLoading = false
       })
+    },
+
+    refreshGetArticles () {
+      this.page.currentPage = 1
+      this.getArticles()
     },
 
     currentChange (val) {
@@ -82,7 +111,51 @@ export default {
       this.getArticles()
     },
 
-    addArticle () {}
+    addArticle () {
+      this.dialogArticleType = 'add'
+      this.dialogArticleShow = true
+    },
+
+    dialogArticleToggle (val) {
+      this.dialogArticleShow = val
+    },
+
+    itemBtnEvent (val, article) {
+      if (val === 'detail') {
+        this.dialogArticleType = 'detail'
+        this.curArticle = article
+        this.dialogArticleShow = true
+      } else if (val === 'editor') {
+        this.dialogArticleType = 'editor'
+        this.curArticle = article
+        this.dialogArticleShow = true
+      } else if (val === 'delete') {
+        this.curArticle = article
+        this.$confirm('此操作将删除该文章, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          this.articleDelete()
+        }).catch(err => {
+          console.log(err)
+        })
+      }
+    },
+
+    articleDelete () {
+      if (this.articleListLoading) return false
+      this.articleListLoading = true
+      this.$axios.delete(`/api/articles/${this.curArticle.id}`).then(res => {
+        this.articleListLoading = false
+        this.getArticles()
+        this.$message.success(res.msg)
+      }).catch(err => {
+        console.log(err)
+      }).finally(_ => {
+        this.articleListLoading = false
+      })
+    }
   }
 }
 </script>
@@ -118,6 +191,16 @@ export default {
         line-height: 30px;
         .item-author {
           margin-left: 15px;
+        }
+      }
+      .item-btn-box {
+        flex: 1;
+        display: none;
+        text-align: right;
+      }
+      &:hover {
+        .item-btn-box {
+          display: block;
         }
       }
     }
